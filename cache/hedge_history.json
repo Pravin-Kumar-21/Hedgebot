@@ -1,0 +1,227 @@
+[
+  {
+    "timestamp": "2025-07-06T23:44:36.887127Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 108370.0
+  },
+  {
+    "timestamp": "2025-07-06T23:44:47.327588Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 108370.0
+  },
+  {
+    "timestamp": "2025-07-06T23:44:47.741944Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 108370.0
+  },
+  {
+    "timestamp": "2025-07-06T23:50:53.202275Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 108370.0
+  },
+  {
+    "timestamp": "2025-07-06T23:52:39.695766Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 108370.0
+  },
+  {
+    "timestamp": "2025-07-06T23:55:19.848276Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 108370.0
+  },
+  {
+    "timestamp": "2025-07-06T23:59:03.693187Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-06T23:59:17.413315Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T14:05:31.099630Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T14:05:34.483903Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T14:22:00.578242Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T15:47:35.152191Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T15:51:02.052945Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T15:55:31.779229Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T15:56:22.056445Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T17:21:18.235875Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T17:43:27.347732Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T17:44:25.104045Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T17:45:00.743354Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T17:53:17.191114Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T17:54:26.416677Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:03:12.216618Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:03:40.083899Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:03:58.908848Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:04:28.396161Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:04:46.419937Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:06:01.154165Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:06:37.214021Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:07:05.085794Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:45:48.932156Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T19:46:36.130525Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T21:07:24.335097Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T21:13:00.718685Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  }
+]
