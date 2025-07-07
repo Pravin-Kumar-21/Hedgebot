@@ -1,7 +1,8 @@
 import requests
 import json
 import os
-from utils.logger import get_logger
+from datetime import datetime
+from logger import get_logger
 
 logger = get_logger()
 
@@ -20,16 +21,16 @@ def fetch_with_proxy(url, proxy=None):
         logger.error(f"Request failed: {e}")
         return None
 
-def get_okx_price(symbol="BTC-USDT", proxy=None):
-    try:
-        url = f"https://www.okx.com/api/v5/market/ticker?instId={symbol}"
-        data = fetch_with_proxy(url, proxy)
-        return float(data['data'][0]['last']) if data else None
-    except Exception as e:
-        logger.error(f"OKX fetch error: {e}")
-        return None
+# def get_okx_price(symbol:str, proxy=None):
+#     try:
+#         url = f"https://www.okx.com/api/v5/market/ticker?instId={symbol}"
+#         data = fetch_with_proxy(url, proxy)
+#         return float(data['data'][0]['last']) if data else None
+#     except Exception as e:
+#         logger.error(f"OKX fetch error: {e}")
+#         return None
 
-def get_bybit_price(symbol="BTCUSDT", proxy=None):
+def get_bybit_price(symbol:str, proxy=None):
     try:
         url = "https://api.bybit.com/v5/market/tickers?category=linear"
         data = fetch_with_proxy(url, proxy)
@@ -51,14 +52,14 @@ def get_deribit_price(symbol="BTC-PERPETUAL", proxy=None):
         logger.error(f"Deribit fetch error: {e}")
         return None
 
-def get_coingecko_price(coin_id="bitcoin"):
-    try:
-        url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
-        data = fetch_with_proxy(url)
-        return float(data[coin_id]["usd"]) if data else None
-    except Exception as e:
-        logger.error(f"CoinGecko fetch error: {e}")
-        return None
+# def get_coingecko_price(coin_id="bitcoin"):
+#     try:
+#         url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
+#         data = fetch_with_proxy(url)
+#         return float(data[coin_id]["usd"]) if data else None
+#     except Exception as e:
+#         logger.error(f"CoinGecko fetch error: {e}")
+#         return None
 
 def load_cached_data():
     try:
@@ -67,19 +68,20 @@ def load_cached_data():
     except (FileNotFoundError, json.JSONDecodeError):
         return None
 
-def update_cache(proxy=None):
+def update_cache(asset: str, proxy=None):
     # Try to fetch live data
     live_data = {
-        "BTC": {
-            "okx": get_okx_price(proxy=proxy),
-            "bybit": get_bybit_price(proxy=proxy),
-            "deribit": get_deribit_price(proxy=proxy),
-            "coingecko": get_coingecko_price()
+        asset: {
+            # "okx": get_okx_price(symbol=f"{asset}USDT", proxy=proxy),
+            "bybit": get_bybit_price(symbol=f"{asset}USDT", proxy=proxy),
+            "deribit": get_deribit_price(symbol=f"{asset}-PERPETUAL", proxy=proxy),
+            # "coingecko": get_coingecko_price(coin_id=asset),
+            "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         }
     }
 
     # If all failed, use cached data
-    if all(v is None for v in live_data["BTC"].values()):
+    if all(v is None for v in live_data[asset].values()):
         cached_data = load_cached_data()
         if cached_data:
             logger.warning("All API requests failed. Using cached data.")

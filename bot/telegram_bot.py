@@ -16,8 +16,7 @@ from telegram.ext import (
 from dotenv import load_dotenv
 from hedge_logger import log_hedge
 from hedge_engine import execute_hedge
-
-
+from data_fetcher import update_cache 
 
 # Make utils accessible even if you run from bot/
 
@@ -137,7 +136,9 @@ async def monitor_risk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         position_size = float(size_str)
         risk_threshold = float(threshold_str)
         asset = asset.upper()
-
+        
+        update_cache(asset)
+        
         price = get_latest_price(asset)
         if price is None:
             await update.message.reply_text(f"⚠️ Could not fetch live price for {asset}. Please try again later.")
@@ -212,7 +213,9 @@ async def risk_monitor_loop(user_id, context):
                 size = data["size"]
                 threshold = data["threshold"]
                 chat_id = data["chat_id"]
-
+                
+                update_cache(asset)
+                
                 price = get_latest_price(asset)
                 if price is None:
                     await asyncio.sleep(30)
@@ -225,12 +228,12 @@ async def risk_monitor_loop(user_id, context):
                         f"📈 Price: ${price:,.2f}\n"
                         f"📉 Exposure: ${exposure:,.2f}\n"
                         f"❗ Threshold: ${threshold:,.2f}\n"
-                        f"💥 Suggestion: Hedge Now"
+                        f"💥 Execution Auto: Hedging Now"
                     )
                     await context.bot.send_message(chat_id=chat_id, text=text)
                     
                     # Log auto hedge
-                    log_hedge(asset, size, price)
+                    log_hedge(asset, size, price, mode="auto")
                     
                     # Remove after alert to prevent spamming
                     if user_id in active_monitors:

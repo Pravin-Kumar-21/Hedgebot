@@ -6,7 +6,7 @@ from datetime import datetime
 # Get logger from parent module
 logger = logging.getLogger(__name__)
 
-def log_hedge(asset: str, size: float, price: float , mode="manual"):
+def log_hedge(asset: str, size: float, price: float , mode:str):
     """
     Log hedge operations to a JSON history file
     

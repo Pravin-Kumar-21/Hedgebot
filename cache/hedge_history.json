@@ -223,5 +223,61 @@
     "size": 1.2,
     "price": 109163.8,
     "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T21:29:24.583873Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T21:29:37.691015Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T21:30:47.118816Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T21:34:23.081940Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109163.8,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T21:38:19.938107Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 107988.6,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T21:42:44.134507Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 107988.6,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-07T21:44:09.120634Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 107988.6,
+    "mode": "auto"
+  },
+  {
+    "timestamp": "2025-07-07T23:44:01.753512Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 108171.0,
+    "mode": "auto"
   }
 ]

@@ -11,3 +11,22 @@
 [2025-07-07 01:20:40,385] INFO - Live data updated.
 [2025-07-07 05:28:00,586] ERROR - Request failed: HTTPSConnectionPool(host='www.okx.com', port=443): Max retries exceeded with url: /api/v5/market/ticker?instId=BTC-USDT (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x749e52a5f490>, 'Connection to www.okx.com timed out. (connect timeout=10)'))
 [2025-07-07 05:28:03,277] INFO - Live data updated.
+[2025-07-08 03:07:31,275] ERROR - Request failed: HTTPSConnectionPool(host='www.okx.com', port=443): Max retries exceeded with url: /api/v5/market/ticker?instId=BTC-USDT (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x75a4bf4ab430>, 'Connection to www.okx.com timed out. (connect timeout=10)'))
+[2025-07-08 03:07:33,857] INFO - Live data updated.
+[2025-07-08 04:02:24,953] ERROR - Request failed: HTTPSConnectionPool(host='www.okx.com', port=443): Max retries exceeded with url: /api/v5/market/ticker?instId=BTC-USDT (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x7900351d75b0>, 'Connection to www.okx.com timed out. (connect timeout=10)'))
+[2025-07-08 04:05:33,432] ERROR - Request failed: HTTPSConnectionPool(host='www.okx.com', port=443): Max retries exceeded with url: /api/v5/market/ticker?instId=BTC-USDT (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x7761b2c57640>, 'Connection to www.okx.com timed out. (connect timeout=10)'))
+[2025-07-08 04:05:35,657] INFO - Live data updated.
+[2025-07-08 04:09:16,740] ERROR - Request failed: HTTPSConnectionPool(host='www.okx.com', port=443): Max retries exceeded with url: /api/v5/market/ticker?instId=BTC-USDT (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x7396d065b5e0>, 'Connection to www.okx.com timed out. (connect timeout=10)'))
+[2025-07-08 04:09:19,137] INFO - Live data updated.
+[2025-07-08 05:13:26,527] INFO - Live data updated.
+[2025-07-08 05:13:28,984] INFO - Live data updated.
+[2025-07-08 05:14:00,933] INFO - Live data updated.
+[2025-07-08 05:15:12,612] INFO - Live data updated.
+[2025-07-08 05:15:15,071] INFO - Live data updated.
+[2025-07-08 05:15:46,609] INFO - Live data updated.
+[2025-07-08 05:16:18,352] INFO - Live data updated.
+[2025-07-08 05:16:50,098] INFO - Live data updated.
+[2025-07-08 05:17:21,841] INFO - Live data updated.
+[2025-07-08 05:17:53,584] INFO - Live data updated.
+[2025-07-08 05:18:25,328] INFO - Live data updated.
+[2025-07-08 05:18:57,685] INFO - Live data updated.
