@@ -1,3 +1,4 @@
+from email.mime import application
 import sys
 import os
 
@@ -17,6 +18,8 @@ from dotenv import load_dotenv
 from hedge_logger import log_hedge
 from hedge_engine import execute_hedge
 from data_fetcher import update_cache 
+from greeks import calculate_greeks
+from data_fetcher import update_cache, load_cached_data
 
 # Make utils accessible even if you run from bot/
 
@@ -45,6 +48,54 @@ CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 CACHE_FILE = os.path.join(CACHE_DIR, "live_data.json")
 HEDGE_HISTORY_FILE = os.path.join(CACHE_DIR, "hedge_history.json")  # Fixed path
+
+
+async def greeks_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if len(args) != 5:
+        await update.message.reply_text(
+            "❗ Usage: /greeks <spot> <strike> <days_to_expiry> <volatility> <call|put>\n"
+            "Example: /greeks 2000 2100 30 0.25 call"
+        )
+        return
+
+    try:
+        spot = float(args[0])
+        strike = float(args[1])
+        days = int(args[2])
+        vol = float(args[3])
+        opt_type = args[4].lower()
+
+        result = calculate_greeks(
+            spot_price=spot,
+            strike_price=strike,
+            time_to_expiry_days=days,
+            volatility=vol,
+            option_type=opt_type
+        )
+
+        if "error" in result:
+            await update.message.reply_text(f"❌ {result['error']}")
+            return
+
+        msg = (
+            f"📊 *Option Greeks* ({opt_type.upper()}):\n\n"
+            f"• Spot Price: ${spot}\n"
+            f"• Strike Price: ${strike}\n"
+            f"• Days to Expiry: {days} days\n"
+            f"• Volatility: {vol*100:.1f}%\n\n"
+            f"🧮 Calculated Greeks:\n"
+            f"• Delta: {result['delta']}\n"
+            f"• Gamma: {result['gamma']}\n"
+            f"• Theta: {result['theta']}\n"
+            f"• Vega: {result['vega']}"
+        )
+
+        await update.message.reply_text(msg, parse_mode="Markdown")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
 
 
 async def hedge_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -333,6 +384,86 @@ async def threshold(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Invalid threshold value. Please enter a valid number.")
 
 
+async def greeks_auto(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if len(args) != 1:
+        await update.message.reply_text("❗ Usage: /greeks_auto <asset>\nExample: /greeks_auto ETH")
+        return
+
+    asset = args[0].upper()
+
+    # Step 1: Fetch real-time data
+    update_cache(asset)
+    cached = load_cached_data()
+    if not cached or asset not in cached:
+        await update.message.reply_text(f"⚠️ Failed to fetch live data for {asset}.")
+        return
+
+    # Step 2: Get price and convert to float
+    price_str = cached[asset].get("bybit") or cached[asset].get("deribit")
+    if not price_str:
+        await update.message.reply_text(f"⚠️ No live price available for {asset}.")
+        return
+    
+    try:
+        price = float(price_str)
+    except (TypeError, ValueError):
+        await update.message.reply_text(f"⚠️ Invalid price format for {asset}.")
+        return
+
+    # Step 3: Set default assumptions
+    spot = round(price, 2)
+    strike = round(price)  # ATM strike
+    days = 7
+    volatility = 0.35  # 35% implied volatility
+    option_type = "call"
+    risk_free_rate = 0.05  # 5% risk-free rate
+
+    # Add detailed logging
+    logger.info(f"Calculating Greeks for {asset}: spot={spot}, strike={strike}, "
+              f"days={days}, vol={volatility}, rate={risk_free_rate}")
+
+    # Step 4: Calculate Greeks with proper parameters
+    greeks = calculate_greeks(
+        spot_price=spot,
+        strike_price=strike,
+        time_to_expiry_days=days,
+        volatility=volatility,
+        risk_free_rate=risk_free_rate,
+        option_type=option_type
+    )
+
+    # Enhanced error handling
+    if "error" in greeks:
+        error_msg = greeks.get("error", "Unknown calculation error")
+        logger.error(f"Greek calculation failed for {asset}: {error_msg}")
+        await update.message.reply_text(
+            f"⚠️ Failed to calculate Greeks for {asset}:\n\n{error_msg}"
+        )
+        return
+    elif not all(key in greeks for key in ['delta', 'gamma', 'theta', 'vega']):
+        logger.error(f"Malformed greeks response for {asset}: {greeks}")
+        await update.message.reply_text(
+            f"⚠️ Received incomplete Greek data for {asset}. Please check logs."
+        )
+        return
+
+    # Format success message
+    msg = (
+        f"📊 Option Greeks (Auto - CALL):\n\n"
+        f"• Spot Price: ${spot}\n"
+        f"• Strike Price (ATM): ${strike}\n"
+        f"• Days to Expiry: {days} days\n"
+        f"• Volatility: {volatility*100:.1f}%\n"
+        f"• Risk-Free Rate: {risk_free_rate*100:.1f}%\n\n"
+        f"🧮 Calculated Greeks:\n"
+        f"• Delta: {greeks['delta']}\n"
+        f"• Gamma: {greeks['gamma']}\n"
+        f"• Theta: {greeks['theta']}\n"
+        f"• Vega: {greeks['vega']}"
+    )
+    await update.message.reply_text(msg)
+
 # ----------------------------- #
 # Handle button callbacks
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -449,7 +580,9 @@ def main():
     application.add_handler(CommandHandler("threshold", threshold))
     application.add_handler(CommandHandler("stop_monitoring", stop_monitoring))
     application.add_handler(CommandHandler("hedge_history", hedge_history)) 
-    
+    application.add_handler(CommandHandler("greeks", greeks_handler))
+    application.add_handler(CommandHandler("greeks_auto", greeks_auto))
+
     # Add callback handler for buttons
     application.add_handler(CallbackQueryHandler(button_callback))
 

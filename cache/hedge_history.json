@@ -279,5 +279,12 @@
     "size": 1.2,
     "price": 108171.0,
     "mode": "auto"
+  },
+  {
+    "timestamp": "2025-07-07T23:52:35.595329Z",
+    "asset": "ETH",
+    "size": 1.2,
+    "price": 2541.06,
+    "mode": "auto"
   }
 ]
