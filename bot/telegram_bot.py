@@ -7,6 +7,7 @@ from datetime import datetime
 import asyncio
 import json
 import logging
+logger = logging.getLogger("telegram")
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -96,6 +97,65 @@ async def greeks_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {str(e)}")
 
+
+async def view_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        logger.info("📋 view_dashboard called")
+        user_id = update.effective_user.id
+        monitor = active_monitors.get(user_id)
+        logger.info(f"Monitor found: {monitor}")
+
+        if not monitor:
+            await update.message.reply_text("⚠️ No active monitoring found.\nUse /monitor_risk to start tracking.")
+            return
+
+        asset = monitor["asset"]
+        size = monitor["size"]
+        threshold = monitor["threshold"]
+
+        cached = load_cached_data()
+        logger.info(f"Cached data: {cached}")
+
+        asset_data = cached.get(asset) if cached else None
+        price = asset_data.get("bybit") or asset_data.get("deribit") if asset_data else None
+        logger.info(f"Live price for {asset}: {price}")
+
+        if not price:
+            await update.message.reply_text(f"⚠️ Failed to fetch live price for {asset}.")
+            return
+
+        spot = round(price, 2)
+        strike = round(price)
+        days = 7
+        volatility = 0.35
+
+        greeks = calculate_greeks(spot, strike, days, volatility)
+        logger.info(f"Greeks: {greeks}")
+
+        delta_exposure = round(size * spot * greeks["delta"], 2)
+        status = "✅ Within Threshold" if delta_exposure <= threshold else "🚨 Breached Threshold"
+
+        msg = (
+            f"📋 Your Dashboard\n\n"
+            f"• Asset: {asset}\n"
+            f"• Spot Price: ${spot}\n"
+            f"• Position Size: {size}\n"
+            f"• Risk Threshold: ${threshold:,.2f}\n"
+            f"• Delta Exposure: ${delta_exposure:,.2f}\n"
+            f"• Status: {status}\n\n"
+            f"🧮 Greeks (7-day, 35% IV):\n"
+            f"• Delta: {greeks['delta']}\n"
+            f"• Gamma: {greeks['gamma']}\n"
+            f"• Theta: {greeks['theta']}\n"
+            f"• Vega: {greeks['vega']}\n\n"
+            f"🔒 Simulated VaR: ${round(0.1 * delta_exposure, 2)}"
+        )
+
+        await update.message.reply_text(msg)
+    
+    except Exception as e:
+        logger.exception("❌ Error in /view_dashboard")
+        await update.message.reply_text(f"❗ Internal error: {e}")
 
 
 async def hedge_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -325,6 +385,49 @@ async def stop_monitoring(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ No active monitoring to stop.")
         
         
+
+
+
+async def hedge_now(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if len(args) != 1:
+        await update.message.reply_text("❗ Usage: /hedge_now <asset>\nExample: /hedge_now BTC")
+        return
+
+    user_id = update.effective_user.id
+    asset = args[0].upper()
+
+    if user_id not in active_monitors or active_monitors[user_id]["asset"] != asset:
+        await update.message.reply_text("⚠️ You don't have an active monitoring session for this asset.")
+        return
+
+    size = active_monitors[user_id]["size"]
+    cached = load_cached_data()
+    if not cached or asset not in cached:
+        await update.message.reply_text(f"⚠️ Failed to fetch live price for {asset}.")
+        return
+
+    price = cached[asset].get("bybit") or cached[asset].get("deribit")
+    if not price:
+        await update.message.reply_text("⚠️ No valid price data available.")
+        return
+
+    # Simulate hedge execution
+    hedge_result = execute_hedge(asset, size, price)
+    log_hedge(asset, size, price, mode="manual")
+
+    msg = (
+        f"🚀 Manual Hedge Executed!\n\n"
+        f"• Asset: {hedge_result['asset']}\n"
+        f"• Hedge Size: {hedge_result['size']}\n"
+        f"• Execution Price: ${hedge_result['execution_price']:.2f}\n"
+        f"• Slippage: {hedge_result['slippage_pct']:.2f}%\n"
+        f"• Estimated Cost: ${hedge_result['cost']:.2f}"
+    )
+    await update.message.reply_text(msg)
+
+
+
 
 # ----------------------------- #
 # /threshold Command
@@ -559,14 +662,63 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         
     elif action == "view_analytics":
-        # In a real bot, you would fetch analytics data here
-        await query.edit_message_text(
-            f"📊 Analytics for {asset}:\n\n"
-            "• 24h Exposure: $1.2M\n"
-            "• Risk Profile: Aggressive\n"
-            "• Correlation: 0.87 with SP500\n\n"
-            "🔒 VaR (95%): $45,000"
-        )
+      user_id = query.from_user.id
+      monitor = active_monitors.get(user_id)
+
+      if not monitor or monitor["asset"] != asset:
+          await query.edit_message_text("⚠️ No active monitoring found for this asset.")
+          return
+
+      size = monitor["size"]
+      threshold = monitor["threshold"]
+      cached = load_cached_data()
+
+      asset_data = cached.get(asset) if cached else None
+      price = asset_data.get("bybit") or asset_data.get("deribit") if asset_data else None
+
+      if not price:
+          await query.edit_message_text(f"⚠️ Failed to fetch live price for {asset}.")
+          return
+
+      spot = round(price, 2)
+      strike = round(price)
+      days = 7
+      volatility = 0.35
+
+      greeks = calculate_greeks(spot, strike, days, volatility)
+
+      delta_exposure = round(size * spot * greeks["delta"], 2)
+      status = "✅ Within Threshold" if delta_exposure <= threshold else "🚨 Breached Threshold"
+
+      # Start building the message
+      msg = (
+          f"📊 Real-Time Risk Analytics for {asset}\n\n"
+          f"• Spot Price: ${spot}\n"
+          f"• Position Size: {size}\n"
+          f"• Threshold: ${threshold:,.2f}\n\n"
+          f"🧮 Greeks (7-day, 35% IV):\n"
+          f"• Delta: {greeks['delta']}\n"
+          f"• Gamma: {greeks['gamma']}\n"
+          f"• Theta: {greeks['theta']}\n"
+          f"• Vega: {greeks['vega']}\n\n"
+          f"📉 Delta Exposure: ${delta_exposure:,.2f}\n"
+          f"• Status: {status}\n\n"
+          f"🔒 VaR (Simulated): ${round(0.1 * delta_exposure, 2)}\n"
+      )
+
+      # Append auto-hedge details if threshold is breached
+      if delta_exposure > threshold:
+          hedge_result = execute_hedge(asset, size, spot)
+          log_hedge(asset, size, spot, "auto")
+
+          msg += (
+              f"\n\n🚀 Auto-Hedge Triggered!\n"
+              f"• Execution Price: ${hedge_result['execution_price']:.2f}\n"
+              f"• Slippage: {hedge_result['slippage_pct']:.2f}%\n"
+              f"• Estimated Cost: ${hedge_result['cost']:.2f}\n"
+          )
+
+      await query.edit_message_text(msg)
 
 # ----------------------------- #
 # Main bot setup
@@ -577,13 +729,13 @@ def main():
     # Add command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("monitor_risk", monitor_risk))
+    application.add_handler(CommandHandler("view_dashboard", view_dashboard))
     application.add_handler(CommandHandler("threshold", threshold))
     application.add_handler(CommandHandler("stop_monitoring", stop_monitoring))
+    application.add_handler(CommandHandler("hedge_now", hedge_now))
     application.add_handler(CommandHandler("hedge_history", hedge_history)) 
     application.add_handler(CommandHandler("greeks", greeks_handler))
     application.add_handler(CommandHandler("greeks_auto", greeks_auto))
-
-    # Add callback handler for buttons
     application.add_handler(CallbackQueryHandler(button_callback))
 
     # Start bot
