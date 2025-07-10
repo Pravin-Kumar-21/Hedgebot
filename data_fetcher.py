@@ -66,51 +66,59 @@ def load_cached_data():
         with open(CACHE_PATH, "r") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        return None
+        return {"BTC": {"latest": {}, "history": []}, "ETH": {"latest": {}, "history": []}}  # Initialize structure
 
 def update_cache(asset: str, proxy=None):
-    asset = asset.upper()  # Normalize asset name like BTC, ETH
+    asset = asset.upper()
+    cached_data = load_cached_data()
     
-    try:
-        cached_data = load_cached_data() or {}
-    except Exception as e:
-        logger.error(f"Failed to load cache: {e}")
-        cached_data = {}
-
-    # Keep your original live_data structure
-    live_data = {
-        asset: {
-            "bybit": get_bybit_price(symbol=f"{asset}USDT", proxy=proxy),
-            "deribit": get_deribit_price(symbol=f"{asset}-PERPETUAL", proxy=proxy),
-            "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        }
+    # Get new prices
+    new_data = {
+        "bybit": get_bybit_price(f"{asset}USDT", proxy),
+        "deribit": get_deribit_price(f"{asset}-PERPETUAL", proxy),
+        "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    # Check if all live fetches failed
-    if all(v is None for k, v in live_data[asset].items() if k != "timestamp"):
-        logger.warning(f"⚠️ All API requests for {asset} failed. Using existing cache.")
-        return cached_data if cached_data else None
+    # Skip if all APIs failed
+    if all(v is None for k, v in new_data.items() if k != "timestamp"):
+        logger.warning(f"All APIs failed for {asset}. Using cached data.")
+        return cached_data
 
-    # Merge new live_data into cached_data
-    cached_data.update(live_data)
+    # Initialize asset structure if missing
+    if asset not in cached_data:
+        cached_data[asset] = {"latest": {}, "history": []}
+    # Convert old format to new format if needed
+    elif "latest" not in cached_data[asset]:
+        cached_data[asset] = {
+            "latest": cached_data[asset],  # Move old data to latest
+            "history": []
+        }
 
-    # Save the updated cache to file
+    # Archive previous "latest" to history (if exists and not empty)
+    if cached_data[asset]["latest"]:  # Now safe to access
+        cached_data[asset]["history"].append(cached_data[asset]["latest"])
+
+    # Keep last 1000 historical records
+    cached_data[asset]["history"] = cached_data[asset]["history"][-1000:]
+
+    # Update latest data
+    cached_data[asset]["latest"] = new_data
+
+    # Save to file
     try:
         with open(CACHE_PATH, "w") as f:
             json.dump(cached_data, f, indent=2)
-        logger.info(f"✅ Cache updated for {asset}")
+        logger.info(f"Updated {asset} data successfully")
     except Exception as e:
-        logger.error(f"❌ Failed to write cache: {e}")
+        logger.error(f"Failed to save cache: {e}")
 
     return cached_data
-
-
 if __name__ == "__main__":
     # Uncomment and set your proxy if needed
     # proxy = "http://your-proxy-address:port"
     proxy = None
     
-    data = update_cache(proxy=proxy)
+    data = update_cache(asset="ETH",proxy=proxy)
     if data:
         print(json.dumps(data, indent=2))
     else:

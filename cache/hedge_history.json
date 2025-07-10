@@ -384,5 +384,19 @@
     "size": 0.75,
     "price": 111267.8,
     "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-10T12:54:20.743328Z",
+    "asset": "BTC",
+    "size": 1.5,
+    "price": 111259.0,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-10T22:06:18.367885Z",
+    "asset": "BTC",
+    "size": 1.5,
+    "price": 116273.3,
+    "mode": "manual"
   }
 ]

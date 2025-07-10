@@ -54,20 +54,23 @@ HEDGE_HISTORY_FILE = os.path.join(CACHE_DIR, "hedge_history.json")  # Fixed path
 
 
 def get_max_price_from_asset_data(asset_data: dict) -> float:
-    """Get the maximum price from available sources"""
+    """Get the maximum price from available sources, handling both formats"""
     if not asset_data:
         return None
         
-    sources = ["bybit", "deribit", "coingecko"]
+    # Handle both old and new formats
+    prices = asset_data.get("latest", asset_data)
+    
+    sources = ["bybit", "deribit"]
     max_price = 0
+    
     for source in sources:
-        price_val = asset_data.get(source)
+        price_val = prices.get(source)
         if price_val:
             try:
                 price_float = float(price_val)
                 if price_float > max_price:
                     max_price = price_float
-                    logger.info(f"Found price from {source}: {price_float}")
             except (TypeError, ValueError):
                 continue
                 
@@ -482,8 +485,9 @@ async def view_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for asset, data in assets.items():
             size = data["size"]
             threshold = data["threshold"]
-            asset_data = cached.get(asset.upper()) if cached else None
-            price = get_max_price_from_asset_data(asset_data) if asset_data else None
+            asset_data = cached.get(asset.upper(), {})
+            price = get_max_price_from_asset_data(asset_data)
+          
             
             logger.info(f"[{asset}] Max price: {price}")
 
@@ -527,7 +531,7 @@ async def view_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def portfolio_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     monitor = active_monitors.get(user_id)
-
+    
     if not monitor or "assets" not in monitor:
         await update.message.reply_text("⚠️ No active portfolio found.\nUse /monitor_risk to start tracking.")
         return
@@ -535,14 +539,17 @@ async def portfolio_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cached = load_cached_data()
     total_exposure = 0
     total_var = 0
+    total_gamma = 0
+    total_theta = 0
+    total_vega = 0
     msg = "📊 Your Portfolio Risk Summary\n\n"
 
     for asset, info in monitor["assets"].items():
         size = info["size"]
         threshold = info["threshold"]
 
-        asset_data = cached.get(asset) if cached else None
-        price = get_max_price_from_asset_data(asset_data) if asset_data else None
+        asset_data = cached.get(asset, {})
+        price = get_max_price_from_asset_data(asset_data)
 
         if not price:
             msg += f"⚠️ {asset}: Live price unavailable.\n\n"
@@ -553,8 +560,18 @@ async def portfolio_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days = 7
         volatility = 0.35
 
+        # Calculate Greeks first
         greeks = calculate_greeks(spot, strike, days, volatility)
         delta = greeks["delta"]
+        gamma = greeks["gamma"]
+        theta = greeks["theta"]
+        vega = greeks["vega"]
+        
+        # Add to total exposures (scaled by position size)
+        total_gamma += gamma * size
+        total_theta += theta * size
+        total_vega += vega * size
+
         delta_exposure = round(size * spot * delta, 2)
         var = round(0.1 * delta_exposure, 2)
         status = "✅" if delta_exposure <= threshold else "🚨"
@@ -569,18 +586,27 @@ async def portfolio_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
         total_exposure += delta_exposure
         total_var += var
 
+    # Add portfolio Greeks after the loop
+    msg += (
+        f"📐 Portfolio Greeks:\n"
+        f"• Gamma: {total_gamma:.4f}\n"
+        f"• Theta: {total_theta:.2f}\n"
+        f"• Vega: {total_vega:.2f}\n\n"
+    )
+    
     msg += (
         f"📦 Total Delta Exposure: ${total_exposure:,.2f}\n"
         f"🔒 Total VaR (Simulated): ${total_var:,.2f}"
     )
 
     await update.message.reply_text(msg)
-
+    
+    
 
 # Get latest price from cache
 def get_latest_price(asset: str, source_priority=None):
     if source_priority is None:
-        source_priority = ["bybit", "deribit", "coingecko"]
+        source_priority = ["bybit", "deribit"]
 
     try:
         if not os.path.exists(CACHE_FILE):
@@ -591,12 +617,27 @@ def get_latest_price(asset: str, source_priority=None):
             data = json.load(f)
         
         asset_data = data.get(asset.upper(), {})
-        return get_max_price_from_asset_data(asset_data)
+        if not asset_data:
+            return None
+            
+        # Handle both old and new formats
+        if "latest" in asset_data:
+            prices = asset_data["latest"]
+        else:
+            prices = asset_data
+            
+        # Check sources in priority order
+        for source in source_priority:
+            price = prices.get(source)
+            if price:
+                return float(price)
+                
+        return None
         
     except Exception as e:
         logger.error(f"Failed to load live data: {str(e)}", exc_info=True)
-        return None
-
+        return None      
+      
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -909,8 +950,8 @@ async def greeks_auto(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Step 2: Get max price
-    asset_data = cached.get(asset)
-    price = get_max_price_from_asset_data(asset_data) if asset_data else None
+    asset_data = cached.get(asset, {})
+    price = get_max_price_from_asset_data(asset_data)
 
     if not price:
         await update.message.reply_text(f"⚠️ No live price available for {asset}.")
@@ -1065,8 +1106,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         threshold = active_monitors[user_id]["assets"][asset]["threshold"]
         cached = load_cached_data()
 
-        asset_data = cached.get(asset) if cached else None
-        price = get_max_price_from_asset_data(asset_data) if asset_data else None
+        asset_data = cached.get(asset, {})
+        price = get_max_price_from_asset_data(asset_data)
 
         if not price:
             await query.edit_message_text(f"⚠️ Failed to fetch live price for {asset}.")
