@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from datetime import datetime
-
+from datetime import timedelta
 # Get logger from parent module
 logger = logging.getLogger(__name__)
 
@@ -55,3 +55,55 @@ def log_hedge(asset: str, size: float, price: float , mode:str):
         
     except Exception as e:
         logger.error(f"Failed to write hedge history: {str(e)}", exc_info=True)
+        
+        
+        
+def get_hedge_history(asset: str = None, timeframe: str = "7d") -> list:
+    """
+    Retrieve hedge history records filtered by asset and timeframe.
+
+    Args:
+        asset (str): Optional asset symbol to filter by.
+        timeframe (str): Time range like "7d", "24h", etc.
+
+    Returns:
+        list: Filtered hedge records
+    """
+    try:
+        BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+        HEDGE_HISTORY_FILE = os.path.join(BASE_DIR, "cache", "hedge_history.json")
+
+        if not os.path.exists(HEDGE_HISTORY_FILE):
+            return []
+
+        with open(HEDGE_HISTORY_FILE, "r") as f:
+            history = json.load(f)
+
+        if not isinstance(history, list):
+            return []
+
+        now = datetime.utcnow()
+        if timeframe.endswith("h"):
+            delta = timedelta(hours=int(timeframe[:-1]))
+        elif timeframe.endswith("d"):
+            delta = timedelta(days=int(timeframe[:-1]))
+        else:
+            delta = timedelta(days=7)
+
+        cutoff = now - delta
+        filtered = []
+
+        for entry in history:
+            try:
+                entry_time = datetime.fromisoformat(entry["timestamp"].replace("Z", ""))
+                if entry_time >= cutoff:
+                    if asset is None or entry["asset"].upper() == asset.upper():
+                        filtered.append(entry)
+            except Exception as e:
+                continue
+
+        return filtered
+
+    except Exception as e:
+        logger.error(f"Failed to read hedge history: {str(e)}", exc_info=True)
+        return []

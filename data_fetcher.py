@@ -69,33 +69,41 @@ def load_cached_data():
         return None
 
 def update_cache(asset: str, proxy=None):
-    # Try to fetch live data
+    asset = asset.upper()  # Normalize asset name like BTC, ETH
+    
+    try:
+        cached_data = load_cached_data() or {}
+    except Exception as e:
+        logger.error(f"Failed to load cache: {e}")
+        cached_data = {}
+
+    # Keep your original live_data structure
     live_data = {
         asset: {
-            # "okx": get_okx_price(symbol=f"{asset}USDT", proxy=proxy),
             "bybit": get_bybit_price(symbol=f"{asset}USDT", proxy=proxy),
             "deribit": get_deribit_price(symbol=f"{asset}-PERPETUAL", proxy=proxy),
-            # "coingecko": get_coingecko_price(coin_id=asset),
             "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         }
     }
 
-    # If all failed, use cached data
-    if all(v is None for v in live_data[asset].values()):
-        cached_data = load_cached_data()
-        if cached_data:
-            logger.warning("All API requests failed. Using cached data.")
-            return cached_data
-        else:
-            logger.error("All API requests failed and no cache available.")
-            return None
+    # Check if all live fetches failed
+    if all(v is None for k, v in live_data[asset].items() if k != "timestamp"):
+        logger.warning(f"⚠️ All API requests for {asset} failed. Using existing cache.")
+        return cached_data if cached_data else None
 
-    # Save to cache
-    with open(CACHE_PATH, "w") as f:
-        json.dump(live_data, f, indent=2)
+    # Merge new live_data into cached_data
+    cached_data.update(live_data)
 
-    logger.info("Live data updated.")
-    return live_data
+    # Save the updated cache to file
+    try:
+        with open(CACHE_PATH, "w") as f:
+            json.dump(cached_data, f, indent=2)
+        logger.info(f"✅ Cache updated for {asset}")
+    except Exception as e:
+        logger.error(f"❌ Failed to write cache: {e}")
+
+    return cached_data
+
 
 if __name__ == "__main__":
     # Uncomment and set your proxy if needed

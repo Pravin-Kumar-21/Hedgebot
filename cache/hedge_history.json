@@ -328,5 +328,61 @@
     "size": 5.0,
     "price": 2615.19,
     "mode": "auto"
+  },
+  {
+    "timestamp": "2025-07-09T13:30:26.464463Z",
+    "asset": "BTC",
+    "size": 1.2,
+    "price": 109552.9,
+    "mode": "auto"
+  },
+  {
+    "timestamp": "2025-07-09T20:18:00.992922Z",
+    "asset": "ETH",
+    "size": 2.5,
+    "price": 2754.53,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-09T21:33:48.845167Z",
+    "asset": "ETH",
+    "size": 2.5,
+    "price": 2745.72,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-09T21:34:03.590479Z",
+    "asset": "ETH",
+    "size": 2.5,
+    "price": 2746.73,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-09T21:35:02.470271Z",
+    "asset": "ETH",
+    "size": 1.1,
+    "price": 2744.26,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-09T21:35:47.728181Z",
+    "asset": "ETH",
+    "size": 1.1,
+    "price": 2742.49,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-09T23:45:18.767877Z",
+    "asset": "ETH",
+    "size": 1.2,
+    "price": 2774.61,
+    "mode": "manual"
+  },
+  {
+    "timestamp": "2025-07-10T00:05:47.761445Z",
+    "asset": "BTC",
+    "size": 0.75,
+    "price": 111267.8,
+    "mode": "manual"
   }
 ]
