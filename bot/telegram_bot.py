@@ -21,6 +21,10 @@ from hedge_engine import execute_hedge
 from data_fetcher import update_cache 
 from greeks import calculate_greeks
 from data_fetcher import update_cache, load_cached_data
+from correlation_engine import compute_correlation
+from stress_tester import simulate_stress_scenarios
+from telegram import Update
+from telegram.ext import ContextTypes
 
 
 # Load .env variables
@@ -171,23 +175,23 @@ async def execute_and_notify_hedge(context: ContextTypes.DEFAULT_TYPE, user_id: 
 
 
 async def auto_hedge(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Configure automated hedging strategy"""
+    """Configure automated hedging strategy or trigger immediate hedge check"""
     args = context.args
     user_id = update.effective_user.id
-    
+
+    # Just view current config
     if not args:
-        # Show current configuration
         config = auto_hedge_config.get(user_id, {})
         if not config:
             await update.message.reply_text("🤖 Auto Hedge: Not configured\n\n"
-                                           "Usage: /auto_hedge <strategy> <threshold>\n"
-                                           "Example: /auto_hedge delta_neutral 50000")
+                                            "Usage: /auto_hedge <strategy> <threshold>\n"
+                                            "Example: /auto_hedge delta_neutral 50000")
             return
-        
+
         strategy = config.get("strategy", "Not set")
         threshold = config.get("threshold", "Not set")
         status = "✅ Active" if config.get("enabled", False) else "❌ Inactive"
-        
+
         await update.message.reply_text(
             f"⚙️ Auto Hedge Configuration\n\n"
             f"• Strategy: {strategy}\n"
@@ -197,39 +201,38 @@ async def auto_hedge(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Use '/auto_hedge disable' to deactivate"
         )
         return
-    
-    # Handle enable/disable commands
-    if args[0].lower() == "enable":
+
+    # Enable / disable auto hedge
+    cmd = args[0].lower()
+    if cmd == "enable":
         if user_id not in auto_hedge_config:
             await update.message.reply_text("⚠️ Configure strategy first: /auto_hedge <strategy> <threshold>")
             return
-            
         auto_hedge_config[user_id]["enabled"] = True
         await update.message.reply_text("✅ Auto hedging ENABLED")
         return
-        
-    if args[0].lower() == "disable":
+
+    if cmd == "disable":
         if user_id in auto_hedge_config:
             auto_hedge_config[user_id]["enabled"] = False
         await update.message.reply_text("🛑 Auto hedging DISABLED")
         return
-    
-    # Set new configuration
+
+    # Set new config: /auto_hedge <strategy> <threshold>
     if len(args) < 2:
         await update.message.reply_text("❗ Usage: /auto_hedge <strategy> <threshold>\n"
-                                       "Example: /auto_hedge delta_neutral 50000")
+                                        "Example: /auto_hedge delta_neutral 50000")
         return
-        
+
     try:
         strategy = args[0]
         threshold = float(args[1])
-        
         auto_hedge_config[user_id] = {
             "strategy": strategy,
             "threshold": threshold,
             "enabled": True
         }
-        
+
         await update.message.reply_text(
             f"🤖 Auto Hedge Configured\n\n"
             f"• Strategy: {strategy}\n"
@@ -237,9 +240,30 @@ async def auto_hedge(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"• Status: ✅ Active\n\n"
             f"Notifications will be sent for automated hedging actions."
         )
-        
+
+        # ✅ Immediately assess all monitored assets
+        monitored_assets = active_monitors.get(user_id, {}).get("assets", {})
+        if not monitored_assets:
+            await update.message.reply_text("ℹ️ No active monitored assets found. Use /monitor_risk first.")
+            return
+
+        for asset, data in monitored_assets.items():
+            size = data["size"]
+            exposure = data["exposure"]
+
+            if exposure > threshold:
+                await update.message.reply_text(
+                    f"🚨 {asset} Risk exceeds threshold (${threshold:,.2f}). Executing hedge..."
+                )
+                await execute_and_notify_hedge(context, user_id, asset, size, mode="auto")
+            else:
+                await update.message.reply_text(
+                    f"✅ {asset} exposure (${exposure:,.2f}) is within threshold (${threshold:,.2f}). No hedge needed."
+                )
+
     except ValueError:
         await update.message.reply_text("❌ Threshold must be a valid number")
+
 
 
 async def hedge_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -602,6 +626,39 @@ async def portfolio_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
     
     
+async def pnl_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user_data = active_monitors.get(user_id)
+
+    if not user_data or "assets" not in user_data or not user_data["assets"]:
+        await update.message.reply_text("⚠️ You are not monitoring any assets yet. Use /monitor_risk first.")
+        return
+
+    cached_data = load_cached_data()
+    response_lines = ["📊 *Real-Time P&L Report:*", ""]
+
+    for asset, info in user_data["assets"].items():
+        entry_price = info["entry_price"]
+        position_size = info["size"]
+        asset_data = cached_data.get(asset.upper(), {})
+
+        current_price = get_max_price_from_asset_data(asset_data)
+        if not current_price:
+            response_lines.append(f"⚠️ {asset}: Live price not available.")
+            continue
+
+        pnl = (current_price - entry_price) * position_size
+        pnl_pct = ((current_price - entry_price) / entry_price) * 100
+
+        response_lines.append(
+            f"💠 *{asset}*\n"
+            f"• Entry: ${entry_price:.2f}\n"
+            f"• Current: ${current_price:.2f}\n"
+            f"• Position: {position_size} units\n"
+            f"• 📈 P&L: ${pnl:.2f} ({pnl_pct:.2f}%)\n"
+        )
+
+    await update.message.reply_text("\n".join(response_lines), parse_mode="Markdown")
 
 # Get latest price from cache
 def get_latest_price(asset: str, source_priority=None):
@@ -682,7 +739,9 @@ async def monitor_risk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         active_monitors[user_id]["assets"][asset] = {
             "size": position_size,
             "threshold": risk_threshold,
-            "exposure": exposure
+            "exposure": exposure,
+            "entry_price": price,
+            "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         }
 
         reply = (
@@ -815,6 +874,95 @@ async def stop_monitoring(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🛑 Monitoring stopped.")
     else:
         await update.message.reply_text("⚠️ No active monitoring to stop.")
+
+
+
+async def correlation_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if len(context.args) != 1:
+            await update.message.reply_text("Usage: /correlation <asset> (e.g., /correlation BTC)")
+            return
+
+        asset = context.args[0].upper()
+        await update.message.reply_text(f"🔍 Calculating rolling correlation for {asset}...")
+
+        latest_corr, df = compute_correlation(asset, window=24)
+
+        if latest_corr is None:
+            await update.message.reply_text("⚠️ Not enough data or failed to calculate correlation.")
+            return
+
+        msg = (
+            f"📊 *Rolling Correlation Report*\n"
+            f"Asset: `{asset}`\n"
+            f"Correlation (Bybit vs Deribit): `{latest_corr:.4f}`\n"
+            f"Window: `24` data points"
+        )
+        await update.message.reply_text(msg, parse_mode="Markdown")
+    except Exception as e:
+        await update.message.reply_text("❌ Error calculating correlation.")
+        print(f"[ERROR] correlation_command: {e}")
+
+
+async def stress_test_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        args = context.args
+        if len(args) not in [1, 6]:
+            await update.message.reply_text(
+                "Usage:\n"
+                "/stress_test <asset>\n"
+                "OR\n"
+                "/stress_test <asset> <spot> <strike> <volatility> <days_to_expiry> <call/put>"
+            )
+            return
+
+        asset = args[0].upper()
+
+        if len(args) == 6:
+            spot = float(args[1])
+            strike = float(args[2])
+            vol = float(args[3])
+            tte = int(args[4])
+            opt_type = args[5].lower()
+        else:
+            await update.message.reply_text("❌ No saved position logic implemented yet.\nPlease use full input format for now.")
+            return
+
+        base_params = {
+            "spot": spot,
+            "strike": strike,
+            "volatility": vol,
+            "time_to_expiry": tte,
+            "option_type": opt_type,
+            "rate": 0.0
+        }
+
+        scenarios = {
+            "Spot Drop -20%": {"spot": -0.20},
+            "Volatility Spike +50%": {"vol": 0.5},
+            "Time Decay 5d": {"days_passed": 5},
+            "Combo Drop+Vol": {"spot": -0.20, "vol": 0.5},
+        }
+
+        results = simulate_stress_scenarios(asset,base_params, scenarios)
+
+        reply = f"📉 Stress Test for {asset.upper()} {opt_type.upper()} Option @ Strike {strike}\n\n"
+        for label, res in results.items():
+            reply += (
+                f"👉 *{label}*\n"
+                f"• Spot: {res['spot']}\n"
+                f"• IV: {res['volatility']*100:.2f}%\n"
+                f"• Days Left: {res['days_remaining']}\n"
+                f"• Price: {res['price']:.2f}\n"
+                f"• Δ: {res['delta']:.4f} | Γ: {res['gamma']:.6f}\n"
+                f"• Θ: {res['theta']:.2f} | Vega: {res['vega']:.2f}\n\n"
+            )
+
+        await update.message.reply_text(reply, parse_mode="Markdown")
+    except Exception as e:
+        print(f"[ERROR] stress_test_command: {e}")
+        await update.message.reply_text("❌ Failed to run stress test.")
+
 
 
 async def hedge_now(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1161,6 +1309,9 @@ def main():
     application.add_handler(CommandHandler("auto_hedge", auto_hedge))
     application.add_handler(CommandHandler("hedge_status", hedge_status))
     application.add_handler(CommandHandler("hedge_history", hedge_history))
+    application.add_handler(CommandHandler("correlation", correlation_command))
+    application.add_handler(CommandHandler("stress_test", stress_test_command))
+    application.add_handler(CommandHandler("pnl_report", pnl_report))
 
     # Start bot
     logger.info("🚀 Bot is running... Press Ctrl+C to stop")
