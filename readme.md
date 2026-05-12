@@ -492,9 +492,34 @@ python telegram_bot.py
 ---
 
 # ▶️ Output Updates 
-```bash
-python telegram_bot.py
-```
+![alt text](https://github.com/Pravin-Kumar-21/Hedgebot/blob/update/Outputs/Screenshot%20From%202025-08-23%2004-19-52.png)
+<br>
+<br>
+
+
+![alt text](https://github.com/Pravin-Kumar-21/Hedgebot/blob/update/Outputs/Screenshot%20From%202025-08-23%2004-20-03.png)
+<br>
+<br>
+
+
+![alt text](https://github.com/Pravin-Kumar-21/Hedgebot/blob/update/Outputs/Screenshot%20From%202025-08-23%2004-20-16.png)
+<br>
+<br>
+
+
+![alt text](https://github.com/Pravin-Kumar-21/Hedgebot/blob/update/Outputs/Screenshot%20From%202025-08-23%2004-20-34.png)
+<br>
+<br>
+
+
+![alt text](https://github.com/Pravin-Kumar-21/Hedgebot/blob/update/Outputs/Screenshot%20From%202025-08-23%2004-20-52.png)
+<br>
+<br>
+
+
+![alt text](https://github.com/Pravin-Kumar-21/Hedgebot/blob/update/Outputs/Screenshot%20From%202025-08-23%2004-21-39.png)
+<br>
+<br>
 
 ---
 
